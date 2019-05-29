@@ -17,13 +17,8 @@ function Engine (size, chunk) {
 // data input.
 // @params {string} key
 // @params {buffer} value
-// @public
-Engine.prototype.insert = async function (key, value) {
-  if (this.INDEXS[key]) {
-    return false
-  }
-  
-  // auto data.
+// @private
+Engine.prototype.write = async function (key, value) {
   let block_indexs = []
   let block_index = 0
   let blocks = []
@@ -83,10 +78,95 @@ Engine.prototype.insert = async function (key, value) {
   
   // Cache segmentation information.
   // Cache key pair information.
-  this.INDEXS[key] = {
+  return {
     count: value.length,
     blocks: block_indexs
   }
+}
+
+
+// write data.
+// @params {string} key
+// @params {buffer} value
+// @public
+Engine.prototype.insert = async function (key, value) {
+  if (this.INDEXS[key]) {
+    return false
+  }
+  
+  // write directly.
+  // don't care about follow-up.
+  let result = await this.write(key, value)
+  this.INDEXS[key] = result
+}
+
+
+// push data.
+// @params {string} key
+// @params {buffer} value
+// @public
+Engine.prototype.push = async function (key, value) {
+  let index = this.INDEXS[key]
+  
+  // Data does not exist.
+  // Assign default value.
+  if (!index) {
+    index = { 
+      count: 0, 
+      blocks: [] 
+    }
+  }
+  
+  // Write directly.
+  // Keep the follow-up.
+  // Increase according to current data.
+  let result = await this.write(key, value)
+  index.blocks.push(...result.blocks)
+  index.count += result.count
+  this.INDEXS[key] = index
+}
+
+
+// pull data.
+// @params {string} key
+// @public
+Engine.prototype.pull = async function (key, start, len) {
+  let option = this.INDEXS[key]
+  
+  // Data does not exist.
+  if (!option) {
+    return null
+  }
+  
+  // take the shard.
+  // Extract data.
+  let bufs = []
+  for (let offset of option.blocks) {
+    let size = this.CHUNK_SIZE
+    
+    // Whether the maximum value is exceeded.
+    // If the maximum is exceeded.
+    // jump out of the loop.
+    if (offset > start + len) {
+      break
+    }
+    
+    // If the limit is not reached
+    // jump out of the current loop.
+    // Continue to the next loop.
+    if (offset + size < start) {
+      continue
+    }
+    
+    // reach the specified location range.
+    // read data chunk.
+    let data = await this.chunk.read(offset, size)
+    bufs.push(...data)
+  }
+  
+  // Return data.
+  let data = bufs.slice(start, len)
+  return Buffer.from(data)
 }
 
 
