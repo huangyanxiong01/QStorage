@@ -1,0 +1,23 @@
+{
+  "name": "qostorage",
+  "version": "1.0.1",
+  "description": "File system based object storage, can also be used as a persistent KV database.",
+  "license": "MIT",
+  "repository": "https://github.com/quasipaa/QStorage",
+  "homepage": "https://github.com/quasipaa/QStorage",
+  "main": "./storage.js",
+  "scripts": {},
+  "author": {
+    "name": "panda",
+    "email": "xivistudios@gmail.com"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "keywords": [
+    "object-storage",
+    "kvstore",
+    "oss"
+  ]
+}
