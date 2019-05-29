@@ -130,43 +130,24 @@ Engine.prototype.push = async function (key, value) {
 // pull data.
 // @params {string} key
 // @public
-Engine.prototype.pull = async function (key, start, len) {
+Engine.prototype.pull = async function (key, callback) {
   let option = this.INDEXS[key]
+  let size = this.CHUNK_SIZE
   
   // Data does not exist.
   if (!option) {
-    return null
+    callback("NotFuond")
   }
   
   // take the shard.
   // Extract data.
-  let bufs = []
+  let count = option.count
   for (let offset of option.blocks) {
-    let size = this.CHUNK_SIZE
-    
-    // Whether the maximum value is exceeded.
-    // If the maximum is exceeded.
-    // jump out of the loop.
-    if (offset > start + len) {
-      break
-    }
-    
-    // If the limit is not reached
-    // jump out of the current loop.
-    // Continue to the next loop.
-    if (offset + size < start) {
-      continue
-    }
-    
-    // reach the specified location range.
-    // read data chunk.
-    let data = await this.chunk.read(offset, size)
-    bufs.push(...data)
+    let len = count > size ? size : count
+    let data = await this.chunk.read(offset, len)
+    callback(null, data, count < size)
+    count -= len
   }
-  
-  // Return data.
-  let data = bufs.slice(start, len)
-  return Buffer.from(data)
 }
 
 

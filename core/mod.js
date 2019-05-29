@@ -23,6 +23,7 @@ function Core ({
   this.chunk = new chunk(pathname, chunkSize)
   this.engine = new engine(blockSize, this.chunk)
   this.events = new EventEmitter()
+  this.BLOCK_SIZE = blockSize
   this.PATH_NAME = pathname
   this.CHUNK_SIZE = chunkSize
   this.LINS_SPLIT = "/"
@@ -207,6 +208,39 @@ Core.prototype.on = function (event, handle) {
 Core.prototype.drop = async function () {
   void await this.syncCore()
   void await this.syncIndex()
+}
+
+
+// write stream.
+// push the read stream.
+// data input.
+// @params {string} key
+// @params {class} stream
+// @public
+Core.prototype.push = function (key, stream) {
+  return new Promise(async function (resolve, reject) {
+    stream
+      .on("error", reject)
+      .on("end", resolve)
+      .on("data", data => {
+      void await this.engine.insert(key, data)
+    })
+  })
+}
+
+
+// read stream.
+// return the read stream.
+// @params {string} key
+// @params {class} stream
+// @public
+Core.prototype.pull = function (key, stream) {
+  return new Promise(async function (resolve, reject) {
+    void await this.engine.pull(key, (err, data, end) => {
+      !err && end ? resolve(stream.end()) : stream.write(data)
+      err && reject(err)
+    })
+  })
 }
 
 
