@@ -68,7 +68,7 @@ storage.on("ready", async function () {
 * `Promise`.
 * `key` `{string}` Key name (Special characters and symbols are not allowed).
 * `value` `{string || buffer || int array}` value data.
-* `return` `void`
+* `return` `Promise`
 
 #### .get(key)
 > Get key data.
@@ -81,6 +81,20 @@ storage.on("ready", async function () {
 * `Function`.
 * `key` `{string}` Key name.
 * `return` `{boolean}` Whether to delete the completion.
+
+#### .push(key, stream)
+> Write data stream.
+* `Promise`.
+* `key` `{string}` Key name.
+* `stream` `{Stream}` Readable Streams.
+* `return` `Promise`
+
+#### .pull(key, stream)
+> Read data stream.
+* `Promise`.
+* `key` `{string}` Key name.
+* `stream` `{Stream}` Writable Streams.
+* `return` `Promise`
 
 #### .drop()
 > Clean up before shutdown.

@@ -1,6 +1,6 @@
 {
   "name": "qostorage",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "File system based object storage, can also be used as a persistent KV database.",
   "license": "MIT",
   "repository": "https://github.com/quasipaa/QStorage",
