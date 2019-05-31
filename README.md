@@ -1,4 +1,4 @@
-![Express Logo](./logo.png)
+![QStorage Logo](./logo.png)
 
 File system based object storage, can also be used as a persistent KV database.
 
