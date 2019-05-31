@@ -109,7 +109,6 @@ Engine.prototype.push = function (key, stream) {
     let index = this.INDEXS[key]
     let size = this.CHUNK_SIZE
     let end = false
-    let bufs = []
   
     // Data does not exist.
     // Assign default value.
@@ -122,7 +121,7 @@ Engine.prototype.push = function (key, stream) {
     
     // stream process.
     stream.on("error", reject)
-    stream.on("end", _=> {
+    stream.on("close", _=> {
       
       // end event.
       // stop process.
@@ -134,22 +133,10 @@ Engine.prototype.push = function (key, stream) {
     // always read.
     stream.on("readable", async _ => {
       while (true) {
+        let bufs = stream.read(size)
         
-        // Write directly.
-        // Keep the follow-up.
-        // Increase according to current data.
-        if (Buffer.isBuffer(bufs)) {
-          let result = await this.write(bufs)
-          index.blocks.push(...result.blocks)
-          index.count += result.count
-        }
-
-        // if there is no readable data.
-        // then return null.
-        bufs = stream.read(size)
-
         // End of reading.
-        if (end) {
+        if (bufs === null && end) {
           this.INDEXS[key] = index
           resolve()
         }
@@ -159,6 +146,13 @@ Engine.prototype.push = function (key, stream) {
         if (bufs === null) {
           break
         }
+      
+        // Write directly.
+        // Keep the follow-up.
+        // Increase according to current data.
+        let result = await this.write(bufs)
+        index.blocks.push(...result.blocks)
+        index.count += result.count
       }
     })
   })

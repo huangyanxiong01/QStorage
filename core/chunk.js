@@ -53,6 +53,7 @@ Chunk.prototype.crate = async function () {
 // @public
 Chunk.prototype.write = async function (data, start) {
   let group = util.writeGroup(data.length, start, this.CHUNK_SIZE)
+  this.SIZE += data.length
   for (let [ i, p, o, s ] of group) {
     
     // Fragment does not exist.
@@ -65,9 +66,6 @@ Chunk.prototype.write = async function (data, start) {
     let { context } = this.CHUNKS[i]
     void await fs.FsWrite(context, data, p, s, o)
   }
-  
-  // Write count.
-  this.SIZE += data.length
 }
 
 
@@ -96,7 +94,7 @@ Chunk.prototype.read = async function (offset, len) {
   }
   
   // Return data.
-  return bufs
+  return bufs.slice(0, len)
 }
 
 
