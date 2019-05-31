@@ -52,8 +52,8 @@ Chunk.prototype.crate = async function () {
 // @params {number} start
 // @public
 Chunk.prototype.write = async function (data, start) {
-  let len = data.length
-  let group = util.writeGroup(len, start, this.CHUNK_SIZE)
+  let group = util.writeGroup(data.length, start, this.CHUNK_SIZE)
+  this.SIZE += data.length
   for (let [ i, p, o, s ] of group) {
     
     // Fragment does not exist.
@@ -66,9 +66,6 @@ Chunk.prototype.write = async function (data, start) {
     let { context } = this.CHUNKS[i]
     void await fs.FsWrite(context, data, p, s, o)
   }
-  
-  // Write count.
-  this.SIZE += len
 }
 
 
@@ -85,18 +82,19 @@ Chunk.prototype.len = function () {
 // @public
 Chunk.prototype.read = async function (offset, len) {
   let group = util.readGroup(this.CHUNK_SIZE, offset, len)
-  let data = []
+  let bufs = Buffer.alloc(0)
   
   // Traversing the read group.
   // read the contents of each segment.dd
   // merge content.
   for (let [ i, o, l ] of group) {
     let { context } = this.CHUNKS[i]
-    data.push(...await fs.FsRead(context, o, l))
+    let data = await fs.FsRead(context, o, l)
+    bufs = Buffer.concat([ bufs, data ])
   }
   
   // Return data.
-  return data
+  return bufs.slice(0, len)
 }
 
 

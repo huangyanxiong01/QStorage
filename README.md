@@ -13,7 +13,7 @@ File system based object storage, can also be used as a persistent KV database.
 
 ## Version
 
-* 1.0.0
+* 1.0.3
 
 
 ## Quick start

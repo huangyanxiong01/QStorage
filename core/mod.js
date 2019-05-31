@@ -217,15 +217,8 @@ Core.prototype.drop = async function () {
 // @params {string} key
 // @params {class} stream
 // @public
-Core.prototype.push = function (key, stream) {
-  return new Promise(async function (resolve, reject) {
-    stream
-      .on("error", reject)
-      .on("end", resolve)
-      .on("data", data => {
-      void await this.engine.insert(key, data)
-    })
-  })
+Core.prototype.push = async function (key, stream) {
+  return await this.engine.push(key, stream)
 }
 
 
@@ -234,13 +227,8 @@ Core.prototype.push = function (key, stream) {
 // @params {string} key
 // @params {class} stream
 // @public
-Core.prototype.pull = function (key, stream) {
-  return new Promise(async function (resolve, reject) {
-    void await this.engine.pull(key, (err, data, end) => {
-      !err && end ? resolve(stream.end()) : stream.write(data)
-      err && reject(err)
-    })
-  })
+Core.prototype.pull = async function (key, stream) {
+  return await this.engine.pull(key, stream)
 }
 
 
