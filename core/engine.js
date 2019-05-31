@@ -67,13 +67,10 @@ Engine.prototype.write = async function (value) {
   
   // Processed failure fragmentation.
   // append to the end of the data area.
-  console.log("======== a", blocks)
   let offset = this.chunk.len()
   for (let i = block_index; i < blocks.length; i ++) {
-    console.log("======== a for", offset)
     void await this.chunk.write(blocks[i], offset)
     let block_len = blocks[i].length
-    console.log("======== b", offset, block_len)
     block_indexs.push(offset)
     offset += (i + 1) * block_len
   }
@@ -111,8 +108,8 @@ Engine.prototype.push = function (key, stream) {
   return new Promise((resolve, reject) => {
     let index = this.INDEXS[key]
     let size = this.CHUNK_SIZE
-    let loop = false
     let end = false
+    let bufs = []
   
     // Data does not exist.
     // Assign default value.
@@ -136,34 +133,31 @@ Engine.prototype.push = function (key, stream) {
     // If the data is not exhausted.
     // always read.
     stream.on("readable", async _ => {
-      console.log("readable")
-      if (!loop) {
-        loop = true
-        while (true) {
-
-          // if there is no readable data.
-          // then return null.
-          // continue waiting.
-          let data = stream.read(size)
-          console.log("read", data)
-          if (data === null) {
-            break
-          }
-
-          // Write directly.
-          // Keep the follow-up.
-          // Increase according to current data.
-          console.log("write")
-          let result = await this.write(data)
+      while (true) {
+        
+        // Write directly.
+        // Keep the follow-up.
+        // Increase according to current data.
+        if (Buffer.isBuffer(bufs)) {
+          let result = await this.write(bufs)
           index.blocks.push(...result.blocks)
           index.count += result.count
-          console.log("count", result.count)
+        }
 
-          // End of reading.
-          if (end) {
-            this.INDEXS[key] = index
-            resolve()
-          }
+        // if there is no readable data.
+        // then return null.
+        bufs = stream.read(size)
+
+        // End of reading.
+        if (end) {
+          this.INDEXS[key] = index
+          resolve()
+        }
+        
+        // read end.
+        // stop loop.
+        if (bufs === null) {
+          break
         }
       }
     })
