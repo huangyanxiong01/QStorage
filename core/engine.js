@@ -15,10 +15,9 @@ function Engine (size, chunk) {
 
 
 // data input.
-// @params {string} key
 // @params {buffer} value
 // @private
-Engine.prototype.write = async function (key, value) {
+Engine.prototype.write = async function (value) {
   let block_indexs = []
   let block_index = 0
   let blocks = []
@@ -35,7 +34,7 @@ Engine.prototype.write = async function (key, value) {
   for (let i = 0; i < block_size; i ++) {
     let offset = this.CHUNK_SIZE * i
     let bufs = Buffer.alloc(this.CHUNK_SIZE)
-    value.copy(bufs, 0, offset, this.CHUNK_SIZE)
+    value.copy(bufs, 0, offset, offset + this.CHUNK_SIZE)
     blocks.push(bufs)
   }
   
@@ -68,10 +67,13 @@ Engine.prototype.write = async function (key, value) {
   
   // Processed failure fragmentation.
   // append to the end of the data area.
+  console.log("======== a", blocks)
   let offset = this.chunk.len()
   for (let i = block_index; i < blocks.length; i ++) {
+    console.log("======== a for", offset)
     void await this.chunk.write(blocks[i], offset)
     let block_len = blocks[i].length
+    console.log("======== b", offset, block_len)
     block_indexs.push(offset)
     offset += (i + 1) * block_len
   }
@@ -96,58 +98,112 @@ Engine.prototype.insert = async function (key, value) {
   
   // write directly.
   // don't care about follow-up.
-  let result = await this.write(key, value)
+  let result = await this.write(value)
   this.INDEXS[key] = result
 }
 
 
 // push data.
 // @params {string} key
-// @params {buffer} value
+// @params {stream} stream
 // @public
-Engine.prototype.push = async function (key, value) {
-  let index = this.INDEXS[key]
+Engine.prototype.push = function (key, stream) {
+  return new Promise((resolve, reject) => {
+    let index = this.INDEXS[key]
+    let size = this.CHUNK_SIZE
+    let loop = false
+    let end = false
   
-  // Data does not exist.
-  // Assign default value.
-  if (!index) {
-    index = { 
-      count: 0, 
-      blocks: [] 
+    // Data does not exist.
+    // Assign default value.
+    if (!index) {
+      index = { 
+        blocks: [],
+        count: 0
+      }
     }
-  }
-  
-  // Write directly.
-  // Keep the follow-up.
-  // Increase according to current data.
-  let result = await this.write(key, value)
-  index.blocks.push(...result.blocks)
-  index.count += result.count
-  this.INDEXS[key] = index
+    
+    // stream process.
+    stream.on("error", reject)
+    stream.on("end", _=> {
+      
+      // end event.
+      // stop process.
+      end = true
+    })
+    
+    // loop.
+    // If the data is not exhausted.
+    // always read.
+    stream.on("readable", async _ => {
+      console.log("readable")
+      if (!loop) {
+        loop = true
+        while (true) {
+
+          // if there is no readable data.
+          // then return null.
+          // continue waiting.
+          let data = stream.read(size)
+          console.log("read", data)
+          if (data === null) {
+            break
+          }
+
+          // Write directly.
+          // Keep the follow-up.
+          // Increase according to current data.
+          console.log("write")
+          let result = await this.write(data)
+          index.blocks.push(...result.blocks)
+          index.count += result.count
+          console.log("count", result.count)
+
+          // End of reading.
+          if (end) {
+            this.INDEXS[key] = index
+            resolve()
+          }
+        }
+      }
+    })
+  })
 }
 
 
 // pull data.
 // @params {string} key
+// @params {stream} stream
 // @public
-Engine.prototype.pull = async function (key, callback) {
-  let option = this.INDEXS[key]
-  let size = this.CHUNK_SIZE
-  
-  // Data does not exist.
-  if (!option) {
-    callback("NotFuond")
-  }
-  
-  // take the shard.
-  // Extract data.
-  let count = option.count
-  for (let offset of option.blocks) {
-    let len = count > size ? size : count
-    let data = await this.chunk.read(offset, len)
-    callback(null, data, count < size)
-    count -= len
-  }
+Engine.prototype.pull = function (key, stream) {
+  return new Promise(async (resolve, reject) => {
+    let option = this.INDEXS[key]
+    let size = this.CHUNK_SIZE
+
+    // Data does not exist.
+    if (!option) {
+      return reject(false)
+    }
+    
+    // Bind the error event of the write stream.
+    stream.on("error", reject)
+    stream.on("finish", resolve)
+
+    // take the shard.
+    // Extract data.
+    // Read data write to write stream.
+    let count = option.count
+    for (let offset of option.blocks) {
+      let len = count > size ? size : count
+      let data = await this.chunk.read(offset, len)
+      stream.write(data)
+      count -= len
+    }
+    
+    // read completed.
+    // end writing.
+    stream.end()
+  })
 }
 
 
@@ -164,16 +220,15 @@ Engine.prototype.get = async function (key) {
   
   // take the shard.
   // Extract data.
-  let bufs = []
+  let bufs = Buffer.alloc(0)
   let { count, blocks } = option
   for (let offset of blocks) {
     let data = await this.chunk.read(offset, this.CHUNK_SIZE)
-    bufs.push(...data)
+    bufs = Buffer.concat([ bufs, data ])
   }
   
   // Return data.
-  let data = bufs.slice(0, count)
-  return Buffer.from(data)
+  return bufs.slice(0, count)
 }
 
 
