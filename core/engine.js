@@ -52,17 +52,17 @@ Engine.prototype.write = async function (value) {
       break 
     }
     
-    // write by byte.
-    // If the end has been written.
-    // Now empty all unfilled bits to 0.
-    void await this.chunk.write(block, offset)
-    
     // increase the index.
     // Increase the index offset.
     // Delete the filled invalidation index.
     block_index += 1
     block_indexs.push(offset)
     this.DROP_BLOCKS.delete(offset)
+    
+    // write by byte.
+    // If the end has been written.
+    // Now empty all unfilled bits to 0.
+    void await this.chunk.write(block, offset)
   }
   
   // Processed failure fragmentation.

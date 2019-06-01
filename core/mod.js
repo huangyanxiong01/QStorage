@@ -88,12 +88,13 @@ Core.prototype.indexParse = async function () {
   let lins = []
   let index_fd = this.DB_INDEX_PATH_CONTEXT
   let data = await fs.FsReadFile(index_fd)
+  let byte_split = Buffer.from(this.LINS_SPLIT)[0]
   for (let byte of data) {
     
     // If no separator is encountered.
     // Add bytes to the buffer.
     // Go directly to the next loop.
-    if (byte.toString() !== this.LINS_SPLIT) {
+    if (byte !== byte_split) {
       lins.push(byte)
       continue
     }
@@ -157,15 +158,21 @@ Core.prototype.checkOption = async function () {
 // write drop index.
 // @private
 Core.prototype.syncDropIndex = async function () {
-  let count = 0
-  let path = this.DROP_INDEX_PATH_CONTEXT
+  let data = Buffer.alloc(0)
   let drops = [...this.engine.DROP_BLOCKS]
   for (let i = 0; i < drops.length; i ++) {
-    let split = i === drops.length - 1 ? "" : "+"
-    let data = Buffer.from(String(drops[i]) + split)
-    void await fs.FsWrite(path, data, 0, data.length, count)
-    count += data.length
+    
+    // Append the delete data to the buffer.
+    // with separator.
+    let split = this.LINS_INDEX_SPLIT
+    let index = Buffer.from(String(drops[i]) + split)
+    data = Buffer.concat([ data, index ])
   }
+  
+  // Write all buffers to the file.
+  // Overwrite writes to avoid long-term data retention.
+  let path = this.DROP_INDEX_PATH_CONTEXT
+  void await fs.FsWrite(path, data, 0, data.length, 0)
 }
 
 
@@ -175,19 +182,29 @@ Core.prototype.dropIndexParse = async function () {
   let lins = []
   let path = this.DROP_INDEX_PATH_CONTEXT
   let data = await fs.FsReadFile(path)
+  let byte_split = Buffer.from(this.LINS_INDEX_SPLIT)[0]
   for (let byte of data) {
-    if (byte.toString() === "+") {
-      let index = Buffer.from(lins).toString()
-      this.engine.DROP_BLOCKS.add(Number(index))
-    } else {
-      lins = []
+    
+    // check if the separator is found.
+    // If not found, added to the buffer.
+    // Continue to the next loop.
+    if (byte !== byte_split) {
+      lins.push(byte)
+      continue
     }
+    
+    // find an index every time.
+    // just add the index to the memory.
+    // and clear the buffer.
+    let index = Buffer.from(lins).toString()
+    this.engine.DROP_BLOCKS.add(Number(index))
+    lins = []
   }
 }
 
 
 // create.
-// @public
+// @private
 Core.prototype.init = async function () {
   this.INDEX_PATH = path.join(this.PATH_NAME, "index.qs")
   this.DB_INDEX_PATH = path.join(this.PATH_NAME, "db.index.qs")
@@ -196,8 +213,8 @@ Core.prototype.init = async function () {
   this.DB_INDEX_PATH_CONTEXT = await fs.OpenFile(this.DB_INDEX_PATH)
   this.DROP_INDEX_PATH_CONTEXT = await fs.OpenFile(this.DROP_INDEX_PATH)
   void await this.checkOption()
-  void await this.indexParse()
   void await this.dropIndexParse()
+  void await this.indexParse()
 }
 
 

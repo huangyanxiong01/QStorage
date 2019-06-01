@@ -21,5 +21,9 @@ storage.on("ready", async function () {
   let data = await storage.get("hello")
   data && console.log(data.toString("utf8"))
   
-  void await storage.remove("hello")
+  console.log(await storage.remove("hello"))
+  console.log(await storage.remove("test"))
+  
+  let hello = await storage.get("hello")
+  console.log(hello)
 })
