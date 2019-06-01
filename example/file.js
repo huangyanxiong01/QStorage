@@ -20,4 +20,6 @@ storage.on("ready", async function () {
   void await storage.insert("hello", "word")
   let data = await storage.get("hello")
   data && console.log(data.toString("utf8"))
+  
+  void await storage.remove("hello")
 })
