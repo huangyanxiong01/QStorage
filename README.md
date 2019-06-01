@@ -97,10 +97,10 @@ storage.on("ready", async function () {
 * `return` `Promise`
 
 #### .drop()
-> Clean up before shutdown.
-> This is a required operation. You must do the final cleanup before each shutdown, save the state, you can also call this function each time you need to save the state.
-> This operation will write the memory data to the file system.
-> For example, listen to the exit event of the process, and then call this function.
+> Clean up before shutdown.</br>
+> This is a required operation. You must do the final cleanup before each shutdown, save the state, you can also call this function each time you need to save the state.</br>
+> This operation will write the memory data to the file system.</br>
+> For example, listen to the exit event of the process, and then call this function.</br>
 * `Promise`.
 * `return` `void`.
 
