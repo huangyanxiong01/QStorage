@@ -7,6 +7,9 @@
 // package.
 // @package
 const fs = require("fs")
+const { promisify } = require('util')
+let fsstat = promisify(fs.stat)
+let fsmkdir = promisify(fs.mkdir)
 
 
 // Open a file.
@@ -94,16 +97,31 @@ function FsWrite (...args) {
 // @parmas {string} pathname
 // @public
 async function OpenFile (pathname) {
-  void await FsClose(await FsOpen(pathname, "a"))
+  let fd = await FsOpen(pathname, "a")
+  void await FsClose(fd)
   return await FsOpen(pathname, "r+")
 }
 
+// check dir exist.
+// @parmas {string} pathname
+// @public
+async function dirExist (pathname) {
+  return  await fsstat(pathname).then(() => true).catch(() => false)
+}
+
+async function mkdir(pathname){
+  void await fsmkdir(pathname, { recursive: true }).catch(() => {
+    console.error(`Please check ${pathname} the file permissions`);
+  });
+}
 
 // export.
 module.exports = {
-  FsStat: FsStat,
-  OpenFile: OpenFile,
-  FsRead: FsRead,
-  FsWrite: FsWrite,
+  mkdir,
+  dirExist,
+  FsStat,
+  OpenFile,
+  FsRead,
+  FsWrite,
   FsReadFile
 }

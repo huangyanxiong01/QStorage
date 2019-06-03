@@ -206,6 +206,11 @@ Core.prototype.dropIndexParse = async function () {
 // create.
 // @private
 Core.prototype.init = async function () {
+  // check path name
+  let dirExist = await fs.dirExist(this.PATH_NAME);
+  if(!dirExist){
+    void await fs.mkdir(this.PATH_NAME);
+  }
   this.INDEX_PATH = path.join(this.PATH_NAME, "index.qs")
   this.DB_INDEX_PATH = path.join(this.PATH_NAME, "db.index.qs")
   this.DROP_INDEX_PATH = path.join(this.PATH_NAME, "drop.index.qs")
